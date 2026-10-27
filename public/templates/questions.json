@@ -1,0 +1,25 @@
+[
+  {
+    "id": "IMPORT-EXAMPLE-001",
+    "subject": "메이크업 개론",
+    "topic": "색상환에서",
+    "question": "색상환의 보색 관계를 설명하는 예제로 적절한 것은?",
+    "choices": [
+      "보색",
+      "유사색",
+      "동일색",
+      "무채색"
+    ],
+    "answer": 1,
+    "explanation": "보색은 색상환에서 대략 반대 위치에 있는 색의 관계다. 유사색은 서로 가까운 색이며, 동일색과 구분한다.",
+    "difficulty": "하",
+    "year": null,
+    "session": null,
+    "type": "original",
+    "sourceUrl": "https://github.com/YunSangYeong/Craftsman-Make-up-CBT/blob/codex/makeup-cbt-standard/scripts/makeup-items.txt",
+    "verificationStatus": "pending",
+    "reviewNote": "등록 양식 예제. 정답·권리·출처를 직접 검토한 후 로컬 승인하세요.",
+    "version": "makeup-main",
+    "rights": "자체 제작 학습 문항 · CC BY 4.0 · Craftsman-Make-up-CBT contributors. 외부 기출 원문 복제 없음."
+  }
+]
