@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   answerExam,
@@ -20,11 +22,11 @@ import {
 } from "../src/model";
 const bank = BASE_BANK;
 describe("메이크업 문제은행 내부 검토", () => {
-  it("90개 고유 자체 제작 문항이며 세 영역 30개씩, 연도·회차·수치 변형 없음", () => {
-    expect(bank).toHaveLength(90);
-    expect(new Set(bank.map(q => q.id)).size).toBe(90);
-    expect(new Set(bank.map(fingerprint)).size).toBe(90);
-    SUBJECTS.forEach(s => expect(bank.filter(q => q.subject === s)).toHaveLength(30));
+  it("1,000개 고유 자체 제작 문항이며 440/280/280개, 연도·회차·수치 변형 없음", () => {
+    expect(bank).toHaveLength(1000);
+    expect(new Set(bank.map(q => q.id)).size).toBe(1000);
+    expect(new Set(bank.map(fingerprint)).size).toBe(1000);
+    SUBJECTS.forEach((s, i) => expect(bank.filter(q => q.subject === s)).toHaveLength([440, 280, 280][i]));
     bank.forEach(q => {
       expect(() => validateQuestion(q)).not.toThrow();
       expect(q.type).toBe("original");
@@ -35,6 +37,38 @@ describe("메이크업 문제은행 내부 검토", () => {
       expect(q.choices[q.answer-1]).toBeTruthy();
       expect(q.explanation.length).toBeGreaterThan(30);
     });
+  });
+});
+describe("1,000문항 확대와 기존 기록 호환", () => {
+  it("기존 90문항의 ID·본문·보기·답안·해설·출처 메타데이터가 그대로 유지된다", () => {
+    const digest = createHash("sha256").update(JSON.stringify(bank.slice(0, 90))).digest("hex");
+    expect(digest).toBe("6733487203b338e0f8ee81e1b55279dca94c20a662eec2531997a2646c4b5844");
+  });
+  it("새 원고의 910개 학습 설명이 각각 한 문항이며 정답표와 실제 보기 번호가 일치한다", () => {
+    const source = readFileSync(new URL("../scripts/makeup-expanded.txt", import.meta.url), "utf8");
+    const rows = source.split(/\r?\n/).filter(line => line.trim() && !line.startsWith("["));
+    expect(rows).toHaveLength(910);
+    expect(new Set(bank.slice(90).map(q => q.objectiveId)).size).toBe(910);
+    rows.forEach((line, index) => {
+      const [answer, description] = line.split("|");
+      const q = bank[index+90];
+      expect(q.choices[q.answer-1]).toBe(answer);
+      expect(q.question).toContain(description);
+      expect(q.explanation).toContain(`정답은 ${answer}입니다.`);
+      expect(q.explanation).toContain("다른 보기와의 구별");
+      expect(q.sourceUrl).toContain("makeup-expanded.txt");
+      expect(q.authoringTemplate).toBe("description-selection-v1");
+      expect(description.replaceAll(" ", "")).not.toContain(answer.replaceAll(" ", ""));
+    });
+    expect(new Set(rows.map(line=>line.split("|")[1].normalize("NFKC").replace(/\s/g,""))).size).toBe(910);
+  });
+  it("확대 이전 저장 기록의 오답·북마크·최근 응답 참조를 유지한다", () => {
+    const old = {...emptyStore(), wrongIds:["MU-001"],bookmarks:["MU-090"],
+      attempts:[{questionId:"MU-001",subject:SUBJECTS[0],correct:false,at:1000,mode:"practice" as const}]};
+    const restored = restoreStore(JSON.stringify(old));
+    expect(restored).toEqual(old);
+    expect(bank.find(q=>q.id===restored.bookmarks[0])).toBeDefined();
+    expect(startPractice(bank,"makeup-main","전체",restored.wrongIds).currentId).toBe("MU-001");
   });
 });
 describe("모의시험 및 절대 시간", () => {
@@ -125,12 +159,12 @@ describe("랜덤 학습", () => {
   it("한 과목의 모든 문항을 순회하기 전에는 중복이 없다", () => {
     let p = startPractice(bank, "makeup-main", "메이크업 개론");
     const ids = new Set<string>();
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 440; i++) {
       expect(ids.has(p.currentId)).toBe(false);
       ids.add(p.currentId);
       p = nextPractice(p, bank);
     }
-    expect(ids.size).toBe(30);
+    expect(ids.size).toBe(440);
     expect(p.subject).toBe("메이크업 개론");
   });
   it("즉시 채점·연속 정답·통계를 저장하며 중복 채점을 방지한다", () => {

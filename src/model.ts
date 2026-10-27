@@ -21,6 +21,9 @@ export interface Question {
   version: Version;
   rights: string;
   family?: string;
+  objectiveId?: string;
+  learningObjective?: string;
+  authoringTemplate?: string;
   calculation?: {
     kind: string;
     values: number[];
